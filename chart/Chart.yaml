@@ -5,7 +5,7 @@ description: A Helm chart for Kubernetes
 version: 0.1.0
 dependencies:
 - name: owgw
-  repository: "git+https://github.com/Telecominfraproject/wlan-cloud-ucentralgw@helm?ref=master"
+  repository: "git+https://github.com/shasta-cloud/wlan-cloud-ucentralgw@helm?ref=ols_dev_01"
   version: 0.1.0
 - name: owsec
   repository: "git+https://github.com/Telecominfraproject/wlan-cloud-ucentralsec@helm?ref=main"
