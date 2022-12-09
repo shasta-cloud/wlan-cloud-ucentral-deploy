@@ -1,0 +1,175 @@
+http:
+  services:
+    owgw-ui:
+      loadBalancer:
+        servers:
+          - url: "http://owgw-ui.wlan.local:80/"
+    owgw-restapi:
+      loadBalancer:
+        servers:
+          - url: "https://owgw.wlan.local:16002/"
+    owgw-fileupload:
+      loadBalancer:
+        servers:
+          - url: "https://owgw.wlan.local:16003/"
+    owsec-restapi:
+      loadBalancer:
+        servers:
+          - url: "https://owsec.wlan.local:16001/"
+    owfms-restapi:
+      loadBalancer:
+        servers:
+          - url: "https://owfms.wlan.local:16004/"
+    owprov-restapi:
+      loadBalancer:
+        servers:
+          - url: "https://owprov.wlan.local:16005/"
+    owprov-ui:
+      loadBalancer:
+        servers:
+          - url: "http://owprov-ui.wlan.local:80/"
+    owanalytics-restapi:
+      loadBalancer:
+        servers:
+          - url: "https://owanalytics.wlan.local:16009/"
+    owsub-restapi:
+      loadBalancer:
+        servers:
+          - url: "https://owsub.wlan.local:16006/"
+    owgw-rttys-view:
+      loadBalancer:
+        servers:
+          - url: "https://owgw.wlan.local:5913/"
+    owrrm-openapi:
+      loadBalancer:
+        servers:
+          - url: "http://owrrm.wlan.local:16789/"
+
+  routers:
+    owgw-ui-http:
+      entryPoints: "owgwuihttp"
+      service: "owgw-ui"
+      rule: "Host(`{{ env "SDKHOSTNAME" }}`)"
+    owgw-ui-https:
+      entryPoints: "owgwuihttps"
+      service: "owgw-ui"
+      rule: "Host(`{{ env "SDKHOSTNAME" }}`)"
+      tls:
+        certResolver: "openwifi"
+    owgw-fileupload:
+      entryPoints: "owgwfileupload"
+      service: "owgw-fileupload"
+      rule: "Host(`{{ env "SDKHOSTNAME" }}`)"
+      tls:
+        certResolver: "openwifi"
+    owgw-restapi:
+      entryPoints: "owgwrestapi"
+      service: "owgw-restapi"
+      rule: "Host(`{{ env "SDKHOSTNAME" }}`)"
+      tls:
+        certResolver: "openwifi"
+    owgw-rttys-view:
+      entryPoints: "owgwrttysview"
+      service: "owgw-rttys-view"
+      rule: "Host(`{{ env "SDKHOSTNAME" }}`)"
+      tls:
+        certResolver: "openwifi"
+    owsec-restapi:
+      entryPoints: "owsecrestapi"
+      service: "owsec-restapi"
+      rule: "Host(`{{ env "SDKHOSTNAME" }}`)"
+      tls:
+        certResolver: "openwifi"
+    owfms-restapi:
+      entryPoints: "owfmsrestapi"
+      service: "owfms-restapi"
+      rule: "Host(`{{env "SDKHOSTNAME"}}`)"
+      tls:
+        certResolver: "openwifi"
+    owprov-restapi:
+      entryPoints: "owprovrestapi"
+      service: "owprov-restapi"
+      rule: "Host(`{{env "SDKHOSTNAME"}}`)"
+      tls:
+        certResolver: "openwifi"
+    owprov-ui-http:
+      entryPoints: "owprovuihttp"
+      service: "owprov-ui"
+      rule: "Host(`{{ env "SDKHOSTNAME" }}`)"
+    owprov-ui-https:
+      entryPoints: "owprovuihttps"
+      service: "owprov-ui"
+      rule: "Host(`{{ env "SDKHOSTNAME" }}`)"
+      tls:
+        certResolver: "openwifi"
+    owanalytics-restapi:
+      entryPoints: "owanalyticsrestapi"
+      service: "owanalytics-restapi"
+      rule: "Host(`{{env "SDKHOSTNAME"}}`)"
+      tls:
+        certResolver: "openwifi"
+    owsub-restapi:
+      entryPoints: "owsubrestapi"
+      service: "owsub-restapi"
+      rule: "Host(`{{env "SDKHOSTNAME"}}`)"
+      tls:
+        certResolver: "openwifi"
+    owrrm-openapi:
+      entryPoints: "owrrmopenapi"
+      service: "owrrm-openapi"
+      rule: "Host(`{{env "SDKHOSTNAME"}}`)"
+      tls:
+        certResolver: "openwifi"
+
+tcp:
+  services:
+    owgw-websocket:
+      loadBalancer:
+        servers:
+          - address: "owgw.wlan.local:15002"
+
+    owgw-rttys:
+      loadBalancer:
+        servers:
+          - address: "owgw.wlan.local:5912"
+
+  routers:
+    owgw-websocket:
+      entryPoints: "owgwwebsocket"
+      service: "owgw-websocket"
+      rule: "HostSNI(`*`)"
+      tls:
+        passthrough: true
+
+    owgw-rttys:
+      entryPoints: "owgwrttys"
+      service: "owgw-rttys"
+      rule: "HostSNI(`*`)"
+      tls:
+        passthrough: true
+
+udp:
+  services:
+    owgw-radius-acc:
+      loadBalancer:
+        servers:
+          - address: "owgw.wlan.local:1813"
+    owgw-radius-auth:
+      loadBalancer:
+        servers:
+          - address: "owgw.wlan.local:1812"
+    owgw-radius-coa:
+      loadBalancer:
+        servers:
+          - address: "owgw.wlan.local:3799"
+
+  routers:
+    owgw-radius-acc:
+      entryPoints: "owgwradacc"
+      service: "owgw-radius-acc"
+    owgw-radius-auth:
+      entryPoints: "owgwradauth"
+      service: "owgw-radius-auth"
+    owgw-radius-coa:
+      entryPoints: "owgwradcoa"
+      service: "owgw-radius-coa"

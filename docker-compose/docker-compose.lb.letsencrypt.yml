@@ -1,0 +1,274 @@
+version: '3'
+
+volumes:
+  owgw_data:
+    driver: local
+  owsec_data:
+    driver: local
+  owfms_data:
+    driver: local
+  owprov_data:
+    driver: local
+  owanalytics_data:
+    driver: local
+  owsub_data:
+    driver: local
+  owrrm_data:
+    driver: local
+  zookeeper_data:
+    driver: local
+  zookeeper_datalog:
+    driver: local
+  kafka_data:
+    driver: local
+  mysql_data:
+    driver: local
+  letsencrypt_certs:
+    driver: local
+
+networks:
+  openwifi:
+
+services:
+  owgw:
+    image: "tip-tip-wlan-cloud-ucentral.jfrog.io/owgw:${OWGW_TAG}"
+    networks:
+      openwifi:
+        aliases:
+          - ${INTERNAL_OWGW_HOSTNAME}
+    env_file:
+      - .env.letsencrypt
+      - owgw.env
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    volumes:
+      - owgw_data:${OWGW_ROOT}/persist
+      - ./certs:/${OWGW_ROOT}/certs
+    sysctls:
+      - net.ipv4.tcp_keepalive_intvl=5
+      - net.ipv4.tcp_keepalive_probes=2
+      - net.ipv4.tcp_keepalive_time=45
+
+  owgw-ui:
+    image: "tip-tip-wlan-cloud-ucentral.jfrog.io/owgw-ui:${OWGWUI_TAG}"
+    networks:
+      openwifi:
+        aliases:
+          - ${INTERNAL_OWGWUI_HOSTNAME}
+    env_file:
+      - owgw-ui.env
+    depends_on:
+      - owsec
+      - owgw
+      - owfms
+      - owprov
+    restart: unless-stopped
+
+  owsec:
+    image: "tip-tip-wlan-cloud-ucentral.jfrog.io/owsec:${OWSEC_TAG}"
+    networks:
+      openwifi:
+        aliases:
+          - ${INTERNAL_OWSEC_HOSTNAME}
+    env_file:
+      - .env.letsencrypt
+      - owsec.env
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    volumes:
+      - owsec_data:${OWSEC_ROOT}/persist
+      - ./certs:/${OWSEC_ROOT}/certs
+
+  owfms:
+    image: "tip-tip-wlan-cloud-ucentral.jfrog.io/owfms:${OWFMS_TAG}"
+    networks:
+      openwifi:
+        aliases:
+          - ${INTERNAL_OWFMS_HOSTNAME}
+    env_file:
+      - .env.letsencrypt
+      - owfms.env
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    volumes:
+      - owfms_data:${OWFMS_ROOT}/persist
+      - ./certs:/${OWFMS_ROOT}/certs
+
+  owprov:
+    image: "tip-tip-wlan-cloud-ucentral.jfrog.io/owprov:${OWPROV_TAG}"
+    networks:
+      openwifi:
+        aliases:
+          - ${INTERNAL_OWPROV_HOSTNAME}
+    env_file:
+      - .env.letsencrypt
+      - owprov.env
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    volumes:
+      - owprov_data:${OWPROV_ROOT}
+      - ./certs:/${OWPROV_ROOT}/certs
+
+  owprov-ui:
+    image: "tip-tip-wlan-cloud-ucentral.jfrog.io/owprov-ui:${OWPROVUI_TAG}"
+    networks:
+      openwifi:
+        aliases:
+          - ${INTERNAL_OWPROVUI_HOSTNAME}
+    env_file:
+      - owprov-ui.env
+    depends_on:
+      - owsec
+      - owgw
+      - owfms
+      - owprov
+    restart: unless-stopped
+
+  owanalytics:
+    image: "tip-tip-wlan-cloud-ucentral.jfrog.io/owanalytics:${OWANALYTICS_TAG}"
+    networks:
+      openwifi:
+        aliases:
+          - ${INTERNAL_OWANALYTICS_HOSTNAME}
+    env_file:
+      - .env.letsencrypt
+      - owanalytics.env
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    volumes:
+      - owanalytics_data:${OWANALYTICS_ROOT}
+      - ./certs:/${OWANALYTICS_ROOT}/certs
+
+  owsub:
+    image: "tip-tip-wlan-cloud-ucentral.jfrog.io/owsub:${OWSUB_TAG}"
+    networks:
+      openwifi:
+        aliases:
+          - ${INTERNAL_OWSUB_HOSTNAME}
+    env_file:
+      - .env.letsencrypt
+      - owsub.env
+    depends_on:
+      - kafka
+    restart: unless-stopped
+    volumes:
+      - owsub_data:${OWSUB_ROOT}
+      - ./certs:/${OWSUB_ROOT}/certs
+
+  owrrm:
+    image: "tip-tip-wlan-cloud-ucentral.jfrog.io/owrrm:${OWRRM_TAG}"
+    networks:
+      openwifi:
+        aliases:
+          - ${INTERNAL_OWRRM_HOSTNAME}
+    env_file:
+      - owrrm.env
+    depends_on:
+      - mysql
+      - kafka
+    restart: unless-stopped
+    volumes:
+      - owrrm_data:/owrrm-data
+
+  zookeeper:
+    image: "zookeeper:${ZOOKEEPER_TAG}"
+    networks:
+      openwifi:
+    restart: unless-stopped
+    volumes:
+      - zookeeper_data:/data
+      - zookeeper_datalog:/datalog
+
+  kafka:
+    image: "docker.io/bitnami/kafka:${KAFKA_TAG}"
+    networks:
+      openwifi:
+    env_file:
+      - kafka.env
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    volumes:
+      - kafka_data:/bitnami/kafka
+
+  init-kafka:
+    image: "docker.io/bitnami/kafka:${KAFKA_TAG}"
+    networks:
+      openwifi:
+    depends_on:
+      - kafka
+    env_file:
+      - kafka.env
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo "Creating all required Kafka topics..."
+        for topic in $$TOPICS; do
+          /opt/bitnami/kafka/bin/kafka-topics.sh \
+          --create --if-not-exists --topic $$topic --replication-factor 1 \
+          --partitions 1 --bootstrap-server kafka:9092
+        done && echo "Successfully created Kafka topics, exiting." && exit 0
+
+  mysql:
+    image: "mysql:${MYSQL_TAG}"
+    networks:
+      openwifi:
+    env_file:
+      - mysql.env
+    restart: unless-stopped
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  traefik:
+    image: "traefik:${TRAEFIK_TAG}"
+    networks:
+      openwifi:
+    env_file:
+      - .env.letsencrypt
+      - traefik.env
+    depends_on:
+      - owsec
+      - owgw
+      - owgw-ui
+      - owfms
+      - owprov
+      - owprov-ui
+      - owanalytics
+      - owsub
+      - owrrm
+    restart: unless-stopped
+    volumes:
+      - "./traefik/openwifi_letsencrypt.yaml:/etc/traefik/openwifi.yaml"
+      - "./certs/restapi-ca.pem:/certs/restapi-ca.pem"
+      - "letsencrypt_certs:/letsencrypt"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        timeout 10m sh -c 'until [[ "$$(getent hosts $SDKHOSTNAME)" ]]; do echo "Waiting until DNS record for $SDKHOSTNAME is resolvable"; sleep 5; done' \
+        && ./entrypoint.sh traefik
+    ports:
+      - "15002:15002"
+      - "16002:16002"
+      - "16003:16003"
+      - "80:80"
+      - "8080:8080"
+      - "443:443"
+      - "8443:8443"
+      - "16001:16001"
+      - "16004:16004"
+      - "16005:16005"
+      - "16009:16009"
+      - "16006:16006"
+      - "5912:5912"
+      - "5913:5913"
+      - "16789:16789"
+      - "1812:1812/udp"
+      - "1813:1813/udp"
+      - "3799:3799/udp"

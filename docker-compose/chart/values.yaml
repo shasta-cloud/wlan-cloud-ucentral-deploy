@@ -1,0 +1,456 @@
+# OpenWIFI Gateway (https://github.com/Telecominfraproject/wlan-cloud-ucentralgw/)
+owgw:
+  fullnameOverride: owgw
+
+  configProperties:
+    openwifi.kafka.enable: "true"
+    openwifi.kafka.brokerlist: kafka:9092
+
+# OpenWIFI Security (https://github.com/Telecominfraproject/wlan-cloud-ucentralsec)
+owsec:
+  fullnameOverride: owsec
+
+  configProperties:
+    openwifi.kafka.enable: "true"
+    openwifi.kafka.brokerlist: kafka:9092
+
+# OpenWIFI Firmware (https://github.com/Telecominfraproject/wlan-cloud-ucentralfms)
+owfms:
+  fullnameOverride: owfms
+
+  configProperties:
+    openwifi.kafka.enable: "true"
+    openwifi.kafka.brokerlist: kafka:9092
+
+# OpenWIFI Provisioning (https://github.com/Telecominfraproject/wlan-cloud-owprov/)
+owprov:
+  fullnameOverride: owprov
+
+  configProperties:
+    openwifi.kafka.enable: "true"
+    openwifi.kafka.brokerlist: kafka:9092
+
+# OpenWIFI Analytics (https://github.com/Telecominfraproject/wlan-cloud-analytics)
+owanalytics:
+  fullnameOverride: owanalytics
+
+  configProperties:
+    openwifi.kafka.enable: "true"
+    openwifi.kafka.brokerlist: kafka:9092
+
+# OpenWIFI Web UI (https://github.com/Telecominfraproject/wlan-cloud-ucentralgw-ui/)
+owgwui:
+  fullnameOverride: owgwui
+
+# OpenWIFI Provisioning Web UI (https://github.com/Telecominfraproject/wlan-cloud-owprov-ui/)
+owprovui:
+  fullnameOverride: owprovui
+
+# OpenWIFI Subscription (https://github.com/Telecominfraproject/wlan-cloud-userportal/)
+owsub:
+  fullnameOverride: owsub
+
+  configProperties:
+    openwifi.kafka.enable: "true"
+    openwifi.kafka.brokerlist: kafka:9092
+
+# OpenWIFI radio resource management (https://github.com/Telecominfraproject/wlan-cloud-rrm/)
+owrrm:
+  fullnameOverride: owrrm
+
+  mysql:
+    enabled: true
+
+# kafka (https://github.com/bitnami/charts/blob/master/bitnami/kafka/)
+kafka:
+  enabled: true
+
+  fullnameOverride: kafka
+
+  image:
+    registry: docker.io
+    repository: bitnami/kafka
+    tag: 2.8.0-debian-10-r43
+
+  minBrokerId: 100
+
+  zookeeper:
+    fullnameOverride: zookeeper
+
+# clustersysteminfo check
+clustersysteminfo:
+  enabled: false
+  delay: 0 # number of seconds to delay clustersysteminfo execution
+
+  images:
+    clustersysteminfo:
+      repository: tip-tip-wlan-cloud-ucentral.jfrog.io/clustersysteminfo
+      tag: v2.7.2
+      pullPolicy: Always
+#      regcred:
+#        registry: tip-tip-wlan-cloud-ucentral.jfrog.io
+#        username: username
+#        password: password
+
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # requests:
+    #  cpu: 100m
+    #  memory: 128Mi
+    # limits:
+    #  cpu: 100m
+    #  memory: 128Mi
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  public_env_variables:
+    FLAGS: "-s --connect-timeout 3"
+    OWSEC: owsec-owsec:16001
+    CHECK_RETRIES: 30
+
+  secret_env_variables:
+    OWSEC_DEFAULT_USERNAME: tip@ucentral.com
+    OWSEC_DEFAULT_PASSWORD: openwifi
+    #OWSEC_NEW_PASSWORD: "" # Set this value in order for the check to work. Password must comply https://github.com/Telecominfraproject/wlan-cloud-ucentralsec/#authenticationvalidationexpression
+
+  activeDeadlineSeconds: 2400
+  backoffLimit: 5
+  restartPolicy: OnFailure
+
+# OpenWIFI Load Simulator (https://github.com/Telecominfraproject/wlan-cloud-owls)
+owls:
+  enabled: false
+
+  fullnameOverride: owls
+
+  configProperties:
+    openwifi.kafka.enable: "true"
+    openwifi.kafka.brokerlist: kafka:9092
+
+# OpenWIFI Load Simulator UI (https://github.com/Telecominfraproject/wlan-cloud-owls-ui)
+owlsui:
+  enabled: false
+
+  fullnameOverride: owlsui
+
+# HAproxy (https://github.com/bitnami/charts/tree/master/bitnami/haproxy)
+haproxy:
+  enabled: true
+
+  fullnameOverride: proxy
+
+  replicaCount: 3
+
+  service:
+    type: LoadBalancer
+    ports:
+      # healthcheck
+      - name: health
+        protocol: TCP
+        port: 8080
+        targetPort: health
+      # owfms
+      - name: owfmsrest
+        protocol: TCP
+        port: 16004
+        targetPort: owfmsrest
+      - name: owfmsrestint
+        protocol: TCP
+        port: 17004
+        targetPort: owfmsrestint
+      # owgw
+      - name: owgwws
+        protocol: TCP
+        port: 15002
+        targetPort: owgwws
+      - name: owgwrest
+        protocol: TCP
+        port: 16002
+        targetPort: owgwrest
+      - name: owgwfileup
+        protocol: TCP
+        port: 16003
+        targetPort: owgwfileup
+      - name: owgwrestint
+        protocol: TCP
+        port: 17002
+        targetPort: owgwrestint
+      - name: owgwrttys
+        protocol: TCP
+        port: 5912
+        targetPort: owgwrttys
+      - name: owgwrttysview
+        protocol: TCP
+        port: 5913
+        targetPort: owgwrttysview
+      # owprov
+      - name: owprovrest
+        protocol: TCP
+        port: 16005
+        targetPort: owprovrest
+      - name: owprovrestint
+        protocol: TCP
+        port: 17005
+        targetPort: owprovrestint
+      # owsec
+      - name: owsecrest
+        protocol: TCP
+        port: 16001
+        targetPort: owsecrest
+      - name: owsecrestint
+        protocol: TCP
+        port: 17001
+        targetPort: owsecrestint
+      # owanalytics
+      - name: owanalyticsrest
+        protocol: TCP
+        port: 16009
+        targetPort: owanalyticsrest
+      - name: owanalyticsrint
+        protocol: TCP
+        port: 17009
+        targetPort: owanalyticsrint
+      # owsub
+      - name: owsubrest
+        protocol: TCP
+        port: 16006
+        targetPort: owsubrest
+      - name: owsubrint
+        protocol: TCP
+        port: 17006
+        targetPort: owsubrint
+
+  containerPorts:
+    # healthcheck
+    - name: health
+      containerPort: 8080
+    # owfms
+    - name: owfmsrest
+      containerPort: 16004
+    - name: owfmsrestint
+      containerPort: 17004
+    # owgw
+    - name: owgwws
+      containerPort: 15002
+    - name: owgwrest
+      containerPort: 16002
+    - name: owgwfileup
+      containerPort: 16003
+    - name: owgwrestint
+      containerPort: 17002
+    - name: owgwrttys
+      containerPort: 5912
+    - name: owgwrttysview
+      containerPort: 5913
+    # owprov
+    - name: owprovrest
+      containerPort: 16005
+    - name: owprovrestint
+      containerPort: 17005
+    # owsec
+    - name: owsecrest
+      containerPort: 16001
+    - name: owsecrestint
+      containerPort: 17001
+    # owanalytics
+    - name: owanalyticsrest
+      containerPort: 16009
+    - name: owanalyticsrint
+      containerPort: 17009
+    # owsub
+    - name: owsubrest
+      containerPort: 16006
+    - name: owsubrint
+      containerPort: 17006
+
+  configuration: |
+    global
+      log stdout format raw local0
+      maxconn 1024
+    defaults
+      log global
+      timeout client 360s
+      timeout connect 60s
+      timeout server 360s
+
+    # healthcheck
+    frontend front_healthcheck
+      bind :8080
+      mode http
+      default_backend back_healthcheck
+    backend back_healthcheck
+      mode http
+      http-after-response set-header Access-Control-Allow-Origin "*"
+      http-after-response set-header Access-Control-Max-Age "31536000"
+      http-request return status 200 content-type "text/plain" string "Pong"
+
+    # owfms
+    frontend front_owfms_rest
+      bind :16004
+      mode tcp
+      default_backend back_owfms_rest
+    backend back_owfms_rest
+      mode tcp
+      server svc_owfms_rest owfms-owfms:16004
+
+    frontend front_owfms_rest_internal
+      bind :17004
+      mode tcp
+      default_backend back_owfms_rest_internal
+    backend back_owfms_rest_internal
+      mode tcp
+      server svc_owfms_rest_internal owfms-owfms:17004
+
+    # owgw
+    frontend front_owgw_websocket
+      bind :15002
+      mode tcp
+      default_backend back_owgw_websocket
+    backend back_owgw_websocket
+      mode tcp
+      server svc_owgw_websocket owgw-owgw:15002
+
+    frontend front_owgw_rest
+      bind :16002
+      mode tcp
+      default_backend back_owgw_rest
+    backend back_owgw_rest
+      mode tcp
+      server svc_owgw_rest owgw-owgw:16002
+
+    frontend front_owgw_fileuploader
+      bind :16003
+      mode tcp
+      default_backend back_owgw_fileuploader
+    backend back_owgw_fileuploader
+      mode tcp
+      server svc_owgw_fileuploader owgw-owgw:16003
+
+    frontend front_owgw_rest_internal
+      bind :17002
+      mode tcp
+      default_backend back_owgw_rest_internal
+    backend back_owgw_rest_internal
+      mode tcp
+      server svc_owgw_rest_internal owgw-owgw:17002
+
+    frontend front_owgw_rttys
+      bind :5912
+      mode tcp
+      default_backend back_owgw_rttys
+    backend back_owgw_rttys
+      mode tcp
+      server svc_owgw_rttys owgw-owgw:5912
+
+    frontend front_owgw_rttys_view
+      bind :5913
+      mode tcp
+      default_backend back_owgw_rttys_view
+    backend back_owgw_rttys_view
+      mode tcp
+      server svc_owgw_rttys_view owgw-owgw:5913
+
+    # owprov
+    frontend front_owprov_rest
+      bind :16005
+      mode tcp
+      default_backend back_owprov_rest
+    backend back_owprov_rest
+      mode tcp
+      server svc_owprov_rest owprov-owprov:16005
+
+    frontend front_owprov_rest_internal
+      bind :17005
+      mode tcp
+      default_backend back_owprov_rest_internal
+    backend back_owprov_rest_internal
+      mode tcp
+      server svc_owprov_rest_internal owprov-owprov:17005
+
+    # owsec
+    frontend front_owsec_rest
+      bind :16001
+      mode tcp
+      default_backend back_owsec_rest
+    backend back_owsec_rest
+      mode tcp
+      server svc_owsec_rest owsec-owsec:16001
+
+    frontend front_owsec_rest_internal
+      bind :17001
+      mode tcp
+      default_backend back_owsec_rest_internal
+    backend back_owsec_rest_internal
+      mode tcp
+      server svc_owsec_rest_internal owsec-owsec:17001
+
+    # owanalytics
+    frontend front_owanalytics_rest
+      bind :16009
+      mode tcp
+      default_backend back_owanalytics_rest
+    backend back_owanalytics_rest
+      mode tcp
+      server svc_owanalytics_rest owanalytics-owanalytics:16009
+
+    frontend front_owanalytics_rest_internal
+      bind :17009
+      mode tcp
+      default_backend back_owanalytics_rest_internal
+    backend back_owanalytics_rest_internal
+      mode tcp
+      server svc_owanalytics_rest_internal owanalytics-owanalytics:17009
+
+    # owsub
+    frontend front_owsub_rest
+      bind :16006
+      mode tcp
+      default_backend back_owsub_rest
+    backend back_owsub_rest
+      mode tcp
+      server svc_owsub_rest owsub-owsub:16006
+
+    frontend front_owsub_rest_internal
+      bind :17006
+      mode tcp
+      default_backend back_owsub_rest_internal
+    backend back_owsub_rest_internal
+      mode tcp
+      server svc_owsub_rest_internal owsub-owsub:17006
+
+# Cert-manager RESTAPI certs
+restapiCerts:
+  enabled: false
+
+  services:
+    - owgw-owgw
+    - owsec-owsec
+    - owfms-owfms
+    - owprov-owprov
+    - owls-owls
+    - owanalytics-owanalytics
+    - owsub-owsub
+    - owrrm-owrrm
+
+  clusterDomain: cluster.local
+
+postgresql-ha:
+  enabled: false
+  nameOverride: pgsql
+  fullnameOverride: pgsql
+  initDbScriptSecret:
+    enabled: false
+    services:
+      - owgw
+      - owsec
+      - owfms
+      - owprov
+      - owanalytics
+      - owsub

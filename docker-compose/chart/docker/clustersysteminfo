@@ -1,0 +1,121 @@
+#!/bin/bash
+
+# Constants
+export DEFAULT_CHECK_RETRIES=30
+
+# Check dependencies
+[[ "$(which jq)" == "" ]] && echo "You need the package jq installed to use this script." && exit 1
+[[ "$(which curl)" == "" ]] && echo "You need the package curl installed to use this script." && exit 1
+
+# Check if required environment variables were passed
+[[ -z ${OWSEC+x} ]] && echo "You must set the variable OWSEC in order to use this script. Something like" && echo "OWSEC=security.isp.com:16001" && exit 1
+[[ -z ${OWSEC_DEFAULT_USERNAME+x} ]] && echo "You must set the variable OWSEC_DEFAULT_USERNAME in order to use this script. Something like" && echo "OWSEC_DEFAULT_USERNAME=tip@ucentral.com" && exit 1
+[[ -z ${OWSEC_DEFAULT_PASSWORD+x} ]] && echo "You must set the variable OWSEC_DEFAULT_PASSWORD in order to use this script. Something like" && echo "OWSEC_DEFAULT_PASSWORD=openwifi" && exit 1
+[[ -z ${OWSEC_NEW_PASSWORD+x} ]] && echo "You must set the variable OWSEC_NEW_PASSWORD in order to use this script. Something like" && echo "OWSEC_NEW_PASSWORD=NewPass123%" && exit 1
+
+[[ "${CHECK_RETRIES}" == "" ]] && [[ "${CHECK_RETRIES}" -eq "${CHECK_RETRIES}" ]] && echo "Environment variable CHECK_RETRIES is not set or is not number, setting it to the default value (${DEFAULT_CHECK_RETRIES})" && export CHECK_RETRIES=$DEFAULT_CHECK_RETRIES
+
+# Make sure owsec is resolvable
+export OWSEC_FQDN=$(echo $OWSEC | awk -F ':' '{print $1}')
+echo "Waiting for OWSEC FQDN ($OWSEC_FQDN) to be resolvable"
+exit_code=1
+until [[ "$exit_code" -eq "0" ]]
+do
+  getent hosts $OWSEC_FQDN
+  exit_code=$?
+  sleep 1
+done
+echo
+
+# Change/check password for owsec AND set owsec credentials
+export CHANGE_CHECK_RETRIES=${CHECK_RETRIES}
+until ./change_credentials || [[ "${CHANGE_CHECK_RETRIES}" -eq "0" ]]
+do
+  echo "Change/check failed"
+  let "CHANGE_CHECK_RETRIES-=1"
+  echo "Retries left - $CHANGE_CHECK_RETRIES"
+  echo
+  sleep 5
+done
+
+if [[ "$ONLY_CHANGE_CREDENTIALS" == "true" ]]; then
+  echo "Flag ONLY_CHANGE_CREDENTIALS was set to true, exiting without services checks";
+  exit 0
+fi
+
+if [[ "${CHANGE_CHECK_RETRIES}" -eq "0" ]]
+then
+  echo "Run out of retries to change/check login credentials"
+  exit 3
+fi
+
+# Prepare security credentials for cli usage
+export OWSEC_USERNAME=${OWSEC_DEFAULT_USERNAME}
+export OWSEC_PASSWORD=${OWSEC_NEW_PASSWORD}
+
+echo "Running systeminfo checks for all components until all of them are available OR check tries are exausted ($CHECK_RETRIES)"
+exit_code_sum=1
+until [[ "$exit_code_sum" -eq "0" ]] || [[ "${CHECK_RETRIES}" -eq "0" ]]
+do
+  exit_code_sum=0
+  ./owsec_cli systeminfo
+  let "exit_code_sum+=$?"
+  if [[ ! -s result.json ]]
+  then
+    let "exit_code_sum+=1"
+  fi
+  let "exit_code_sum+=$(grep ErrorCode result.json | wc -l)"
+  sleep 1
+
+  ./owgw_cli systeminfo
+  let "exit_code_sum+=$?"
+  if [[ ! -s result.json ]]
+  then
+    let "exit_code_sum+=1"
+  fi
+  let "exit_code_sum+=$(grep ErrorCode result.json | wc -l)"
+  sleep 1
+
+  ./owfms_cli systeminfo
+  let "exit_code_sum+=$?"
+  if [[ ! -s result.json ]]
+  then
+    let "exit_code_sum+=1"
+  fi
+  let "exit_code_sum+=$(grep ErrorCode result.json | wc -l)"
+  sleep 1
+
+  ./owprov_cli systeminfo
+  let "exit_code_sum+=$?"
+  if [[ ! -s result.json ]]
+  then
+    let "exit_code_sum+=1"
+  fi
+  let "exit_code_sum+=$(grep ErrorCode result.json | wc -l)"
+  sleep 1
+
+  ./owanalytics_cli systeminfo
+  let "exit_code_sum+=$?"
+  if [[ ! -s result.json ]]
+  then
+    let "exit_code_sum+=1"
+  fi
+  let "exit_code_sum+=$(grep ErrorCode result.json | wc -l)"
+  sleep 1
+
+  ./owsub_cli systeminfo
+  let "exit_code_sum+=$?"
+  if [[ ! -s result.json ]]
+  then
+    let "exit_code_sum+=1"
+  fi
+  let "exit_code_sum+=$(grep ErrorCode result.json | wc -l)"
+  sleep 1
+
+  let "CHECK_RETRIES-=1"
+  echo "Exit code sum: $exit_code_sum"
+  echo "Left retries: $CHECK_RETRIES"
+  sleep 5
+  echo
+done
+exit $exit_code_sum
