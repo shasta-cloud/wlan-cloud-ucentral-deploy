@@ -45,6 +45,32 @@ usage () {
   echo "- MAILER_PASSWORD - SMTP password used for OWSEC mailer (only if both MAILER_PASSWORD and MAILER_USERNAME are set, mailer will be enabled)" >&2;
 }
 
+
+export DEPLOY_METHOD="git"
+export NAMESPACE="ols"
+#export CHART_VERSION="v2.7.2"
+export CHART_VERSION="v2.7.2"
+#export OWGW_VERSION="master"
+export OWGW_VERSION="ols_dev_01"
+export OWGWUI_VERSION="main"
+export OWSEC_VERSION="main"
+export OWFMS_VERSION="main"
+export OWPROV_VERSION="main"
+export OWPROVUI_VERSION="main"
+export OWANALYTICS_VERSION="main"
+export OWSUB_VERSION="main"
+export OWRRM_VERSION="main"
+export VALUES_FILE_LOCATION="values.openwifi-qa.yaml,values.openwifi-qa.single-external-db.yaml"
+export RTTY_TOKEN="abcdef"
+export OWGW_AUTH_USERNAME="root@system.com"
+export OWGW_AUTH_PASSWORD="b5bfed31e2a272e52973a57b95042ab842db3999475f3d79f1ce0f45f465e34c"
+export OWFMS_S3_SECRET="b0S6EiR5RLIxoe7Xvz9YXPPdxQCoZ6ze37qunTAI"
+export OWFMS_S3_KEY="AKIAUG47UZG7R6SRLD7F"
+export CERT_LOCATION="cert.pem"
+export KEY_LOCATION="key.pem"
+export OWSEC_NEW_PASSWORD="Tru@12345"
+
+
 # Global variables
 VALUES_FILE_LOCATION_SPLITTED=()
 EXTRA_VALUES_SPLITTED=()
@@ -114,7 +140,8 @@ helm plugin install https://github.com/databus23/helm-diff || true
 if [[ "$DEPLOY_METHOD" == "git" ]]; then
   helm plugin install https://github.com/aslafy-z/helm-git --version 0.10.0 || true
   rm -rf wlan-cloud-ucentral-deploy || true
-  git clone https://github.com/Telecominfraproject/wlan-cloud-ucentral-deploy.git
+  #git clone https://github.com/Telecominfraproject/wlan-cloud-ucentral-deploy.git
+  git clone https://github.com/shasta-cloud/wlan-cloud-ucentral-deploy.git
   cd wlan-cloud-ucentral-deploy
   git checkout $CHART_VERSION
   cd chart
@@ -156,76 +183,76 @@ for EXTRA_VALUE in ${EXTRA_VALUES_SPLITTED[*]}; do
 done
 
 if [[ "$USE_SEPARATE_OWGW_LB" == "true" ]]; then
-  export HAPROXY_SERVICE_DNS_RECORDS="sec-${NAMESPACE}.cicd.lab.wlan.tip.build\,fms-${NAMESPACE}.cicd.lab.wlan.tip.build\,prov-${NAMESPACE}.cicd.lab.wlan.tip.build\,analytics-${NAMESPACE}.cicd.lab.wlan.tip.build\,sub-${NAMESPACE}.cicd.lab.wlan.tip.build"
-  export OWGW_SERVICE_DNS_RECORDS="gw-${NAMESPACE}.cicd.lab.wlan.tip.build"
+  export HAPROXY_SERVICE_DNS_RECORDS="sec-${NAMESPACE}.shastacloud.com\,fms-${NAMESPACE}.shastacloud.com\,prov-${NAMESPACE}.shastacloud.com\,analytics-${NAMESPACE}.shastacloud.com\,sub-${NAMESPACE}.shastacloud.com"
+  export OWGW_SERVICE_DNS_RECORDS="gw-${NAMESPACE}.shastacloud.com"
 else
-  export HAPROXY_SERVICE_DNS_RECORDS="gw-${NAMESPACE}.cicd.lab.wlan.tip.build\,sec-${NAMESPACE}.cicd.lab.wlan.tip.build\,fms-${NAMESPACE}.cicd.lab.wlan.tip.build\,prov-${NAMESPACE}.cicd.lab.wlan.tip.build\,analytics-${NAMESPACE}.cicd.lab.wlan.tip.build\,sub-${NAMESPACE}.cicd.lab.wlan.tip.build"
+  export HAPROXY_SERVICE_DNS_RECORDS="gw-${NAMESPACE}.shastacloud.com\,sec-${NAMESPACE}.shastacloud.com\,fms-${NAMESPACE}.shastacloud.com\,prov-${NAMESPACE}.shastacloud.com\,analytics-${NAMESPACE}.shastacloud.com\,sub-${NAMESPACE}.shastacloud.com"
   export OWGW_SERVICE_DNS_RECORDS=""
 fi
 
 # Run the deployment
 helm upgrade --install --create-namespace --wait --timeout 60m \
-  --namespace openwifi-${NAMESPACE} \
+  --namespace ${NAMESPACE} \
   ${VALUES_FILES_FLAGS[*]} \
-  --set owgw.services.owgw.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=gw-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owgw.configProperties."openwifi\.fileuploader\.host\.0\.name"=gw-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owgw.configProperties."rtty\.server"=gw-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owgw.configProperties."openwifi\.system\.uri\.public"=https://gw-${NAMESPACE}.cicd.lab.wlan.tip.build:16002 \
+  --set owgw.services.owgw.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=gw-${NAMESPACE}.shastacloud.com \
+  --set owgw.configProperties."openwifi\.fileuploader\.host\.0\.name"=gw-${NAMESPACE}.shastacloud.com \
+  --set owgw.configProperties."rtty\.server"=gw-${NAMESPACE}.shastacloud.com \
+  --set owgw.configProperties."openwifi\.system\.uri\.public"=https://gw-${NAMESPACE}.shastacloud.com:16002 \
   --set owgw.configProperties."openwifi\.system\.uri\.private"=$INTERNAL_RESTAPI_ENDPOINT_SCHEMA://owgw-owgw:17002 \
-  --set owgw.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.cicd.lab.wlan.tip.build \
+  --set owgw.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.shastacloud.com \
   --set owgw.configProperties."iptocountry\.ipinfo\.token"="${IPTOCOUNTRY_IPINFO_TOKEN}" \
-  --set owgw.public_env_variables.OWSEC=sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
+  --set owgw.public_env_variables.OWSEC=sec-${NAMESPACE}.shastacloud.com:16001 \
   --set owsec.configProperties."authentication\.default\.username"=${OWGW_AUTH_USERNAME} \
   --set owsec.configProperties."authentication\.default\.password"=${OWGW_AUTH_PASSWORD} \
-  --set owsec.services.owsec.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=sec-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owsec.configProperties."openwifi\.system\.uri\.public"=https://sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
+  --set owsec.services.owsec.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=sec-${NAMESPACE}.shastacloud.com \
+  --set owsec.configProperties."openwifi\.system\.uri\.public"=https://sec-${NAMESPACE}.shastacloud.com:16001 \
   --set owsec.configProperties."openwifi\.system\.uri\.private"=$INTERNAL_RESTAPI_ENDPOINT_SCHEMA://owsec-owsec:17001 \
-  --set owsec.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owsec.configProperties."mailer\.sender"=sec-${NAMESPACE}@cicd.lab.wlan.tip.build \
+  --set owsec.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.shastacloud.com \
+  --set owsec.configProperties."mailer\.sender"=sec-${NAMESPACE}@shastacloud.com \
   --set owsec.configProperties."mailer\.enabled"=$MAILER_ENABLED \
   --set owsec.configProperties."mailer\.username"=$MAILER_USERNAME \
   --set owsec.configProperties."mailer\.password"=$MAILER_PASSWORD \
   --set owfms.configProperties."s3\.secret"=${OWFMS_S3_SECRET} \
   --set owfms.configProperties."s3\.key"=${OWFMS_S3_KEY} \
-  --set owfms.services.owfms.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=fms-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owfms.configProperties."openwifi\.system\.uri\.public"=https://fms-${NAMESPACE}.cicd.lab.wlan.tip.build:16004 \
+  --set owfms.services.owfms.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=fms-${NAMESPACE}.shastacloud.com \
+  --set owfms.configProperties."openwifi\.system\.uri\.public"=https://fms-${NAMESPACE}.shastacloud.com:16004 \
   --set owfms.configProperties."openwifi\.system\.uri\.private"=$INTERNAL_RESTAPI_ENDPOINT_SCHEMA://owfms-owfms:17004 \
-  --set owfms.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owfms.public_env_variables.OWSEC=sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
-  --set owgwui.ingresses.default.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=webui-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owgwui.ingresses.default.hosts={webui-${NAMESPACE}.cicd.lab.wlan.tip.build} \
-  --set owgwui.public_env_variables.DEFAULT_UCENTRALSEC_URL=https://sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
-  --set owprov.services.owprov.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=prov-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owprov.configProperties."openwifi\.system\.uri\.public"=https://prov-${NAMESPACE}.cicd.lab.wlan.tip.build:16005 \
+  --set owfms.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.shastacloud.com \
+  --set owfms.public_env_variables.OWSEC=sec-${NAMESPACE}.shastacloud.com:16001 \
+  --set owgwui.ingresses.default.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=webui-${NAMESPACE}.shastacloud.com \
+  --set owgwui.ingresses.default.hosts={webui-${NAMESPACE}.shastacloud.com} \
+  --set owgwui.public_env_variables.DEFAULT_UCENTRALSEC_URL=https://sec-${NAMESPACE}.shastacloud.com:16001 \
+  --set owprov.services.owprov.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=prov-${NAMESPACE}.shastacloud.com \
+  --set owprov.configProperties."openwifi\.system\.uri\.public"=https://prov-${NAMESPACE}.shastacloud.com:16005 \
   --set owprov.configProperties."openwifi\.system\.uri\.private"=$INTERNAL_RESTAPI_ENDPOINT_SCHEMA://owprov-owprov:17005 \
-  --set owprov.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.cicd.lab.wlan.tip.build \
+  --set owprov.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.shastacloud.com \
   --set owprov.configProperties."iptocountry\.ipinfo\.token"="${IPTOCOUNTRY_IPINFO_TOKEN}" \
-  --set owprov.public_env_variables.OWSEC=sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
-  --set owprovui.ingresses.default.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=provui-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owprovui.ingresses.default.hosts={provui-${NAMESPACE}.cicd.lab.wlan.tip.build} \
-  --set owprovui.public_env_variables.DEFAULT_UCENTRALSEC_URL=https://sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
-  --set owprovui.public_env_variables.REACT_APP_UCENTRALSEC_URL=https://sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
-  --set owanalytics.services.owanalytics.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=analytics-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owanalytics.configProperties."openwifi\.system\.uri\.public"=https://analytics-${NAMESPACE}.cicd.lab.wlan.tip.build:16009 \
+  --set owprov.public_env_variables.OWSEC=sec-${NAMESPACE}.shastacloud.com:16001 \
+  --set owprovui.ingresses.default.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=provui-${NAMESPACE}.shastacloud.com \
+  --set owprovui.ingresses.default.hosts={provui-${NAMESPACE}.shastacloud.com} \
+  --set owprovui.public_env_variables.DEFAULT_UCENTRALSEC_URL=https://sec-${NAMESPACE}.shastacloud.com:16001 \
+  --set owprovui.public_env_variables.REACT_APP_UCENTRALSEC_URL=https://sec-${NAMESPACE}.shastacloud.com:16001 \
+  --set owanalytics.services.owanalytics.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=analytics-${NAMESPACE}.shastacloud.com \
+  --set owanalytics.configProperties."openwifi\.system\.uri\.public"=https://analytics-${NAMESPACE}.shastacloud.com:16009 \
   --set owanalytics.configProperties."openwifi\.system\.uri\.private"=$INTERNAL_RESTAPI_ENDPOINT_SCHEMA://owanalytics-owanalytics:17009 \
-  --set owanalytics.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owanalytics.public_env_variables.OWSEC=sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
-  --set owsub.services.owsub.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=sub-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owsub.configProperties."openwifi\.system\.uri\.public"=https://sub-${NAMESPACE}.cicd.lab.wlan.tip.build:16006 \
+  --set owanalytics.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.shastacloud.com \
+  --set owanalytics.public_env_variables.OWSEC=sec-${NAMESPACE}.shastacloud.com:16001 \
+  --set owsub.services.owsub.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=sub-${NAMESPACE}.shastacloud.com \
+  --set owsub.configProperties."openwifi\.system\.uri\.public"=https://sub-${NAMESPACE}.shastacloud.com:16006 \
   --set owsub.configProperties."openwifi\.system\.uri\.private"=$INTERNAL_RESTAPI_ENDPOINT_SCHEMA://owsub-owsub:17006 \
-  --set owsub.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owsub.public_env_variables.OWSEC=sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
-  --set clustersysteminfo.public_env_variables.OWSEC=sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
+  --set owsub.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.shastacloud.com \
+  --set owsub.public_env_variables.OWSEC=sec-${NAMESPACE}.shastacloud.com:16001 \
+  --set clustersysteminfo.public_env_variables.OWSEC=sec-${NAMESPACE}.shastacloud.com:16001 \
   --set clustersysteminfo.secret_env_variables.OWSEC_NEW_PASSWORD=${OWSEC_NEW_PASSWORD} \
-  --set owls.services.owls.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=ls-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owls.configProperties."openwifi\.system\.uri\.public"=https://ls-${NAMESPACE}.cicd.lab.wlan.tip.build:16007 \
+  --set owls.services.owls.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=ls-${NAMESPACE}.shastacloud.com \
+  --set owls.configProperties."openwifi\.system\.uri\.public"=https://ls-${NAMESPACE}.shastacloud.com:16007 \
   --set owls.configProperties."openwifi\.system\.uri\.private"=$INTERNAL_RESTAPI_ENDPOINT_SCHEMA://owls-owls:17007 \
-  --set owls.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owlsui.ingresses.default.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=lsui-${NAMESPACE}.cicd.lab.wlan.tip.build \
-  --set owlsui.ingresses.default.hosts={lsui-${NAMESPACE}.cicd.lab.wlan.tip.build} \
-  --set owlsui.public_env_variables.DEFAULT_UCENTRALSEC_URL=https://sec-${NAMESPACE}.cicd.lab.wlan.tip.build:16001 \
-  --set owrrm.public_env_variables.SERVICECONFIG_PUBLICENDPOINT=https://rrm-${NAMESPACE}.cicd.lab.wlan.tip.build:16789 \
-  --set owrrm.services.owrrm.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=rrm-${NAMESPACE}.cicd.lab.wlan.tip.build \
+  --set owls.configProperties."openwifi\.system\.uri\.ui"=https://webui-${NAMESPACE}.shastacloud.com \
+  --set owlsui.ingresses.default.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=lsui-${NAMESPACE}.shastacloud.com \
+  --set owlsui.ingresses.default.hosts={lsui-${NAMESPACE}.shastacloud.com} \
+  --set owlsui.public_env_variables.DEFAULT_UCENTRALSEC_URL=https://sec-${NAMESPACE}.shastacloud.com:16001 \
+  --set owrrm.public_env_variables.SERVICECONFIG_PUBLICENDPOINT=https://rrm-${NAMESPACE}.shastacloud.com:16789 \
+  --set owrrm.services.owrrm.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=rrm-${NAMESPACE}.shastacloud.com \
   --set haproxy.service.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=$HAPROXY_SERVICE_DNS_RECORDS \
   --set owgw.services.owgw.annotations."external-dns\.alpha\.kubernetes\.io/hostname"=$OWGW_SERVICE_DNS_RECORDS \
   ${EXTRA_VALUES_FLAGS[*]} \
