@@ -20,10 +20,10 @@ dependencies:
   repository: "git+https://github.com/Telecominfraproject/wlan-cloud-analytics@helm?ref=v2.7.0"
   version: 0.1.0
 - name: owgwui
-  repository: "git+https://github.com/Telecominfraproject/wlan-cloud-ucentralgw-ui@helm?ref=v2.7.0"
+  repository: "git+https://github.com/shasta-cloud/wlan-cloud-ucentralgwui@helm?ref=ols_dev_01"
   version: 0.1.0
 - name: owprovui
-  repository: "git+https://github.com/Telecominfraproject/wlan-cloud-owprov-ui@helm?ref=v2.7.0"
+  repository: "git+https://github.com/shasta-cloud/wlan-cloud-owprov-ui@helm?ref=ols_dev_01"
   version: 0.1.0
 - name: owsub
   repository: "git+https://github.com/Telecominfraproject/wlan-cloud-userportal@helm?ref=v2.7.0"
