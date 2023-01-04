@@ -40,7 +40,7 @@ dependencies:
   version: 0.1.0
   condition: owls.enabled
 - name: owlsui
-  repository: "git+https://github.com/Telecominfraproject/wlan-cloud-owls-ui@helm?ref=master"
+  repository: "git+https://github.com/shasta-cloud/wlan-cloud-owls-ui-new@helm?ref=master"
   version: 0.1.0
   condition: owlsui.enabled
 - name: haproxy
